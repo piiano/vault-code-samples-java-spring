@@ -3,12 +3,13 @@
 ## Background
 Piiano Vault is the secure home for sensitive personal data. It allows you to safely store sensitive personal data in your own cloud environment with
 automated compliance controls.
-Vault is deployed within your own architecture, next to other DBs used by the applications, and should be used to store the most critical sensitive personal data, such as credit card and bank account numbers, name, email, national IDs (e.g. SSN), phone number, etc.
+Vault is deployed within your own architecture, next to other DBs used by the applications, and should be used to store the most critical sensitive personal data, such as credit cards and bank account numbers, names, emails, national IDs (e.g. SSN), phone numbers, etc.
 The main benefits are:
 - Field level encryption, including key rotation
 - Searchability is allowed over the encrypted data
-- Full audit to all data accesses
+- Full audit log for all data accesses
 - Granular access controls
+- Easy masking and tokenization of data
 - Out of the box privacy compliance functionality
 
 More details can be found [on our website](https://piiano.com/pii-data-privacy-vault/) and on the [developers portal](https://piiano.com/docs/).
