@@ -16,7 +16,7 @@ function mysql_cmd_inital()
 	do  
 		output=`docker run -it --rm mysql mysql -hhost.docker.internal -uroot -p${MYSQL_ROOT_PASS} -e "show databases;"`
 		if [ $? != "0" ] ; then
-			echo ${output} | grep -q "ERROR 2013"
+			echo ${output} | grep -q "ERROR 20"
 			if [ $? != "0" ] ; then
 				echo "Failed running SQL command."
 				return
@@ -45,7 +45,7 @@ function mysql_cmd()
 		P="-p${MYSQL_PASS}"
 		DB=${MYSQL_DBNAME}
 	fi
-	echo Running ${CMD}
+	echo Running "${CMD}"
 	docker run -it --rm mysql mysql -hhost.docker.internal ${DB} ${U} ${P} -e "${CMD}"
 }
 
@@ -79,6 +79,10 @@ function stop_all()
 	docker stop pvault-dev
 	echo "stop mysql"
 	docker stop mysql
+	if [[ $(jobs -p) ]]; then
+		kill $(jobs -p)
+	fi
+	
 }
 
 function interrupted_callback()
@@ -90,7 +94,7 @@ function interrupted_callback()
 
 function debug()
 {
-	echo $1
+	echo -e '\n--' $1
 	if $INTERACTIVE_MODE ; then
 		echo "<enter> to continue"
 		read press_enter
@@ -158,10 +162,10 @@ users PERSONS (
   email EMAIL ENCRYPTED,
 )"
 
-# run Piiano ORM connector
-echo "Now run the Java in a different window:"
-echo "java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar "
-read wait_for_me
+# run Piiano connector
+debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar"
+java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar &
+sleep 10
 
 # Add some users
 debug "Adding users..."
@@ -169,7 +173,6 @@ add_user john       Doe 		johndoe   1111  john@gmail.com      us
 add_user also_john	Doe     also_john 2222  john@gmail.com      us
 add_user alice		  Smith   alices    3333  alice@hotmail.com   us
 add_user bob		    Jones   bobj      4444  bob@yahoo.com       us
-
 
 # Search user by email=john@email.com
 debug "Search user by email=john@email.com --> expecting 2 results:"
@@ -186,15 +189,15 @@ if [ $? != 0 ] ; then
 fi
 
 # Show mysql tokenized data
-debug "Showing tokenized data in mysql"
+debug "Showing tokenized data in mysql (note the 'email' column)"
 mysql_cmd false 'select * from user;'
-
-debug "Showing the data as a user from the vault (automatically decrypted)"
-${PVAULT_CLI} collection list
-${PVAULT_CLI} object list --collection users --all-unsafe
 
 # Show data in Vault is encrypted
 debug "Showing the data as it is found in the Vault DB"
 docker exec -it pvault-dev psql -Upvault pvault -c "select _id,email from data_app_users;"
+
+debug "Showing the data as a user from the vault (automatically decrypted)"
+${PVAULT_CLI} collection list
+${PVAULT_CLI} object list --collection users --all-unsafe
 
 stop_all

@@ -6,9 +6,8 @@ Demo application using Piiano Vault.
 
 1. Java 1.8+
 2. Maven (3.8.3+)/Gradle (7.2+)
-3. Compiled piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar ([from here](/piiano_vault_sdk))
-
-
+3. Compiled piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar (run `make` in the parent directory)
+4. Docker
 
 ## Installation
 

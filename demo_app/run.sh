@@ -75,14 +75,9 @@ function usage_and_exit()
 
 function stop_all()
 {
-	echo "stop pvault-dev"
-	docker stop pvault-dev
 	echo "stop mysql"
 	docker stop mysql
-	if [[ $(jobs -p) ]]; then
-		kill $(jobs -p)
-	fi
-	
+	kill $(jobs -p)
 }
 
 function interrupted_callback()
@@ -127,15 +122,6 @@ if [ $? != 0 ] ; then
 	JQ=cat
 fi
 
-# check for license key of Vault
-if [ -z $PVAULT_SERVICE_LICENSE ] ; then
-	echo "Please first set environment variable: PVAULT_SERVICE_LICENSE"
-	echo "Obtain a free license here: https://piiano.com/docs/guides/get-started#install-piiano-vault"
-	exit 0
-else
-	debug "license found in PVAULT_SERVICE_LICENSE"
-fi
-
 debug "stopping stale containers"
 stop_all
 
@@ -144,27 +130,9 @@ docker run --rm --name mysql -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS} -p 3306:3
 mysql_cmd_inital
 mysql_cmd true "create database app_db; create user '${MYSQL_USER}'@'%' identified by '${MYSQL_PASS}'; grant all on ${MYSQL_DBNAME}.* to '${MYSQL_USER}'@'%';"
 
-# start vault
-debug "starting vault"
-docker run --rm --name pvault-dev -p 8123:8123 -e PVAULT_DEVMODE=true \
-		-e PVAULT_SERVICE_LICENSE=${PVAULT_SERVICE_LICENSE} -d piiano/pvault-dev:${DOCKER_TAG}
-
-# check for Vault version to ensure it is up - TBD
-until ${PVAULT_CLI} version > /dev/null 2>&1
-do
-    echo "Waiting for the vault to start ..."
-    sleep 1
-done
-
-debug "Adding new collection 'users' with email property"
-${PVAULT_CLI} collection add --collection-pvschema "
-users PERSONS (
-  email EMAIL ENCRYPTED,
-)"
-
 # run Piiano connector
-debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/piiano-vault-connector/0.0.1-SNAPSHOT/piiano-vault-connector-0.0.1-SNAPSHOT.jar"
-java -jar ~/.m2/repository/com/piiano/piiano-vault-connector/0.0.1-SNAPSHOT/piiano-vault-connector-0.0.1-SNAPSHOT.jar &
+debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/demo-app/0.0.1-SNAPSHOT/demo-app-0.0.1-SNAPSHOT.jar"
+java -jar ~/.m2/repository/com/piiano/demo-app/0.0.1-SNAPSHOT/demo-app-0.0.1-SNAPSHOT.jar &
 sleep 10
 
 # Add some users
@@ -173,6 +141,7 @@ add_user john       Doe 		johndoe   1111  john@gmail.com      us
 add_user also_john	Doe     also_john 2222  john@gmail.com      us
 add_user alice		  Smith   alices    3333  alice@hotmail.com   us
 add_user bob		    Jones   bobj      4444  bob@yahoo.com       us
+
 
 # Search user by email=john@email.com
 debug "Search user by email=john@email.com --> expecting 2 results:"
@@ -188,16 +157,8 @@ if [ $? != 0 ] ; then
 	echo "Failed get all users"
 fi
 
-# Show mysql tokenized data
-debug "Showing tokenized data in mysql (note the 'email' column)"
+# Show mysql data
+debug "Showing data in mysql (note the 'email' column)"
 mysql_cmd false 'select * from user;'
-
-# Show data in Vault is encrypted
-debug "Showing the data as it is found in the Vault DB"
-docker exec -it pvault-dev psql -Upvault pvault -c "select _id,email from data_app_users;"
-
-debug "Showing the data as a user from the vault (automatically decrypted)"
-${PVAULT_CLI} collection list
-${PVAULT_CLI} object list --collection users --all-unsafe
 
 stop_all
