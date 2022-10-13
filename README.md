@@ -7,7 +7,7 @@ Vault is deployed within your own architecture, next to other DBs used by the ap
 The main benefits are:
 - Field level encryption, including key rotation
 - Searchability is allowed over the encrypted data
-- Full audit to all data access
+- Full audit to all data accesses
 - Granular access controls
 - Out of the box privacy compliance functionality
 
@@ -19,7 +19,7 @@ To compile all demos run: `make` at the top level
 
 This repo contains the following projects:
 
-1. `demo_app` - A standard Java/Spring/Hibernate project demonstrating a simple application with users being save in MySQL. 
+1. `demo_app` - A standard Java/Spring/Hibernate project demonstrating a simple application with users being stored in MySQL. 
 [Run](/demo_app/README.md) this project.
 
 2. `piiano_vault_connector` - The same project utilizing Piiano Vault to store the emails, keeping tokenized versions in the MySQL.
@@ -32,5 +32,5 @@ automatic interception of requests at the ORM level. [Run](/piiano_vault_orm_con
 
     :warning: This project is both work in progress and experimental. ORM level attachment will likely change as this project evolves. 
 
-4. `piiano_vault_sdk` - Vault Java SDK using an open api wrapper. This is a prerequisite for the piiano based connectors. 
+4. `piiano_vault_sdk` - Vault Java SDK using an open API wrapper. This is a prerequisite for the Piiano based connectors. 
 
