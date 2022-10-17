@@ -6,8 +6,15 @@ Demo application without Piiano vault.
 
 1. Java 1.8+
 2. Maven (3.8.3+)/Gradle (7.2+)
+3. Compiled demo-app-0.0.1-SNAPSHOT.jar (run `make` in the parent directory)
+4. Docker
 
 ## Installation
+
+Run locally using `./run.sh` from a Mac or Linux machine.
+To enable interactive mode, run `./run.sh -i`.
+
+### Alternative Manual Instructions
 
 1. Mysql:
 - docker run --name mysql -e MYSQL_ROOT_PASSWORD=rootpass -p 3306:3306  -d  mysql:8.0.30

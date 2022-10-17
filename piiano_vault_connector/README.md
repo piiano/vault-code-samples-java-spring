@@ -23,8 +23,10 @@ The boot
 - docker run --name mysql -e MYSQL_ROOT_PASSWORD=rootpass -p 3306:3306  -d  mysql:8.0.30
 - You will require mysql CLI. If you don't have it installed you can run it from the mysql container: `docker exec -it mysql mysql`
 - Create the mysql Database ([taken from here](https://spring.io/guides/gs/accessing-data-mysql/#initial)):
+
 ```
 mysql --password
+
 create database app_db;
 create user 'springuser'@'%' identified by 'userpass';
 grant all on app_db.* to 'springuser'@'%';
