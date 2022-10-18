@@ -177,7 +177,7 @@ users PERSONS (
 )"
 
 # run Piiano connector
-debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/piiano-vault-connector/0.0.1-SNAPSHOT/piiano-vault-connector-0.0.1-SNAPSHOT.jar"
+debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar"
 java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar \
 	--server.port=${APP_PORT} --spring.datasource.url=jdbc:mysql://localhost:${MYSQL_PORT}/app_db &
 until curl -s "${BASE_URL}"

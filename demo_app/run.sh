@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # APP
-export APP_PORT=8090
+export APP_PORT=${APP_PORT:-8090}
 BASE_URL="http://localhost:${APP_PORT}/demo"
 # MySQL
 MYSQL_USER=springuser
@@ -9,7 +9,7 @@ MUSQL_ROOT_USER=admin
 MYSQL_ROOT_PASS=rootpass
 MYSQL_PASS=userpass
 MYSQL_DBNAME=app_db
-export MYSQL_PORT=3307
+export MYSQL_PORT=${MYSQL_PORT:-3307}
 # Docker localhost
 DOCKER_LOCALHOST=${DOCKER_LOCALHOST:-host.docker.internal} # or use 172.17.0.1
 
