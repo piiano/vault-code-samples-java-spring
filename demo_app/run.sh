@@ -1,20 +1,24 @@
 #!/bin/bash
 
-BASE_URL="http://localhost:8080/demo"
+# APP
+export APP_PORT=8090
+BASE_URL="http://localhost:${APP_PORT}/demo"
+# MySQL
 MYSQL_USER=springuser
 MUSQL_ROOT_USER=admin
 MYSQL_ROOT_PASS=rootpass
 MYSQL_PASS=userpass
 MYSQL_DBNAME=app_db
-DOCKER_TAG="0.9.7-poc-221012"
-PVAULT_CLI="docker run --rm -i -v $(pwd):/pwd -w /pwd piiano/pvault-cli:${DOCKER_TAG}"
+export MYSQL_PORT=3307
+# Docker localhost
+DOCKER_LOCALHOST=${DOCKER_LOCALHOST:-host.docker.internal} # or use 172.17.0.1
 
 # Run as root and also wait allow for time until mysql is up
 function mysql_cmd_inital()
 {
-	for i in {1..5}
+	for i in {1..20}
 	do  
-		output=`docker run -it --rm mysql mysql -hhost.docker.internal -uroot -p${MYSQL_ROOT_PASS} -e "show databases;"`
+		output=`docker run -it --rm mysql mysql -h${DOCKER_LOCALHOST} -uroot -p${MYSQL_ROOT_PASS} -P${MYSQL_PORT} -e "show databases;"`
 		if [ $? != "0" ] ; then
 			echo ${output} | grep -q "ERROR 20"
 			if [ $? != "0" ] ; then
@@ -46,7 +50,7 @@ function mysql_cmd()
 		DB=${MYSQL_DBNAME}
 	fi
 	echo Running "${CMD}"
-	docker run -it --rm mysql mysql -hhost.docker.internal ${DB} ${U} ${P} -e "${CMD}"
+	docker run -it --rm mysql mysql -h${DOCKER_LOCALHOST} -P${MYSQL_PORT} ${DB} ${U} ${P} -e "${CMD}"
 }
 
 function add_user()
@@ -76,8 +80,11 @@ function usage_and_exit()
 function stop_all()
 {
 	echo "stop mysql"
-	docker stop mysql
+	docker rm -f mysql
+	if [[ $(jobs -p) ]]; then
 	kill $(jobs -p)
+	fi
+	
 }
 
 function interrupted_callback()
@@ -126,14 +133,19 @@ debug "stopping stale containers"
 stop_all
 
 debug "starting mysql"
-docker run --rm --name mysql -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS} -p 3306:3306 -d mysql:8.0.30
+docker run --rm --name mysql -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS} -p ${MYSQL_PORT}:3306 -d mysql:8.0.30
 mysql_cmd_inital
 mysql_cmd true "create database app_db; create user '${MYSQL_USER}'@'%' identified by '${MYSQL_PASS}'; grant all on ${MYSQL_DBNAME}.* to '${MYSQL_USER}'@'%';"
 
 # run Piiano connector
 debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/demo-app/0.0.1-SNAPSHOT/demo-app-0.0.1-SNAPSHOT.jar"
-java -jar ~/.m2/repository/com/piiano/demo-app/0.0.1-SNAPSHOT/demo-app-0.0.1-SNAPSHOT.jar &
-sleep 10
+java -jar ~/.m2/repository/com/piiano/demo-app/0.0.1-SNAPSHOT/demo-app-0.0.1-SNAPSHOT.jar \
+	--server.port=${APP_PORT} --spring.datasource.url=jdbc:mysql://localhost:${MYSQL_PORT}/app_db &
+until curl -s "${BASE_URL}"
+do
+    echo "Waiting for app at ${BASE_URL}" 
+    sleep 5
+done
 
 # Add some users
 debug "Adding users..."
@@ -141,7 +153,6 @@ add_user john       Doe 		johndoe   1111  john@gmail.com      us
 add_user also_john	Doe     also_john 2222  john@gmail.com      us
 add_user alice		  Smith   alices    3333  alice@hotmail.com   us
 add_user bob		    Jones   bobj      4444  bob@yahoo.com       us
-
 
 # Search user by email=john@email.com
 debug "Search user by email=john@email.com --> expecting 2 results:"

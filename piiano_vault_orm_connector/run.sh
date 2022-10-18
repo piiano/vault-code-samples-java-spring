@@ -1,20 +1,29 @@
 #!/bin/bash
 
-BASE_URL="http://localhost:8080/demo"
+# APP
+export APP_PORT=${APP_PORT:-8090}
+BASE_URL="http://localhost:${APP_PORT}/demo"
+# MySQL
 MYSQL_USER=springuser
 MUSQL_ROOT_USER=admin
 MYSQL_ROOT_PASS=rootpass
 MYSQL_PASS=userpass
 MYSQL_DBNAME=app_db
-DOCKER_TAG="0.9.7-poc-221012"
-PVAULT_CLI="docker run --rm -i -v $(pwd):/pwd -w /pwd piiano/pvault-cli:${DOCKER_TAG}"
+export MYSQL_PORT=${MYSQL_PORT:-3307}
+# Docker localhost
+DOCKER_LOCALHOST=${DOCKER_LOCALHOST:-host.docker.internal} # or use 172.17.0.1
+# Vault
+DOCKER_TAG="0.9.7"
+export PVAULT_PORT=${PVAULT_PORT:-8124}
+PSQL_PORT=${PSQL_PORT:-5431}
+PVAULT_CLI="docker run --rm -i -v $(pwd):/pwd -w /pwd -e PVAULT_ADDR=http://${DOCKER_LOCALHOST}:${PVAULT_PORT} piiano/pvault-cli:${DOCKER_TAG}"
 
 # Run as root and also wait allow for time until mysql is up
 function mysql_cmd_inital()
 {
-	for i in {1..5}
+	for i in {1..20}
 	do  
-		output=`docker run -it --rm mysql mysql -hhost.docker.internal -uroot -p${MYSQL_ROOT_PASS} -e "show databases;"`
+		output=`docker run -it --rm mysql mysql -h${DOCKER_LOCALHOST} -uroot -p${MYSQL_ROOT_PASS} -P${MYSQL_PORT} -e "show databases;"`
 		if [ $? != "0" ] ; then
 			echo ${output} | grep -q "ERROR 20"
 			if [ $? != "0" ] ; then
@@ -46,7 +55,7 @@ function mysql_cmd()
 		DB=${MYSQL_DBNAME}
 	fi
 	echo Running "${CMD}"
-	docker run -it --rm mysql mysql -hhost.docker.internal ${DB} ${U} ${P} -e "${CMD}"
+	docker run -it --rm mysql mysql -h${DOCKER_LOCALHOST} -P${MYSQL_PORT} ${DB} ${U} ${P} -e "${CMD}"
 }
 
 function add_user()
@@ -75,10 +84,10 @@ function usage_and_exit()
 
 function stop_all()
 {
-	echo "stop pvault-dev"
-	docker stop pvault-dev
+	echo "stop pvault"
+	docker rm -f pvault-db pvault-server
 	echo "stop mysql"
-	docker stop mysql
+	docker rm -f mysql
 	if [[ $(jobs -p) ]]; then
 		kill $(jobs -p)
 	fi
@@ -140,14 +149,19 @@ debug "stopping stale containers"
 stop_all
 
 debug "starting mysql"
-docker run --rm --name mysql -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS} -p 3306:3306 -d mysql:8.0.30
+docker run --rm --name mysql -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS} -p ${MYSQL_PORT}:3306 -d mysql:8.0.30
 mysql_cmd_inital
 mysql_cmd true "create database app_db; create user '${MYSQL_USER}'@'%' identified by '${MYSQL_PASS}'; grant all on ${MYSQL_DBNAME}.* to '${MYSQL_USER}'@'%';"
 
 # start vault
 debug "starting vault"
-docker run --rm --name pvault-dev -p 8123:8123 -e PVAULT_DEVMODE=true \
-		-e PVAULT_SERVICE_LICENSE=${PVAULT_SERVICE_LICENSE} -d piiano/pvault-dev:${DOCKER_TAG}
+docker run --rm -p ${PSQL_PORT}:5432 --name pvault-db -e POSTGRES_DB=pvault -e POSTGRES_USER=pvault \
+		-e POSTGRES_PASSWORD=pvault -d postgres:13.5
+
+until docker exec pvault-db psql -U pvault > /dev/null 2>&1 ; do echo "waiting for PSQL"; sleep 1; done
+
+docker run --rm --name pvault-server -p ${PVAULT_PORT}:8123 -ePVAULT_DB_PORT=${PSQL_PORT} -e PVAULT_DB_HOSTNAME=${DOCKER_LOCALHOST} \
+	-e PVAULT_DEVMODE=true -e PVAULT_SERVICE_LICENSE=${PVAULT_SERVICE_LICENSE} -d piiano/pvault-server:${DOCKER_TAG}
 
 # check for Vault version to ensure it is up - TBD
 until ${PVAULT_CLI} version > /dev/null 2>&1
@@ -159,13 +173,18 @@ done
 debug "Adding new collection 'users' with email property"
 ${PVAULT_CLI} collection add --collection-pvschema "
 users PERSONS (
-  email EMAIL ENCRYPTED,
+  email EMAIL,
 )"
 
 # run Piiano connector
-debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar"
-java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar &
-sleep 10
+debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/piiano-vault-connector/0.0.1-SNAPSHOT/piiano-vault-connector-0.0.1-SNAPSHOT.jar"
+java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar \
+	--server.port=${APP_PORT} --spring.datasource.url=jdbc:mysql://localhost:${MYSQL_PORT}/app_db &
+until curl -s "${BASE_URL}"
+do
+    echo "Waiting for app at ${BASE_URL}" 
+    sleep 5
+done
 
 # Add some users
 debug "Adding users..."
@@ -194,7 +213,7 @@ mysql_cmd false 'select * from user;'
 
 # Show data in Vault is encrypted
 debug "Showing the data as it is found in the Vault DB"
-docker exec -it pvault-dev psql -Upvault pvault -c "select _id,email from data_app_users;"
+docker exec -it pvault-db psql -Upvault pvault -c "select _id,email from data_app_users;"
 
 debug "Showing the data as a user from the vault (automatically decrypted)"
 ${PVAULT_CLI} collection list

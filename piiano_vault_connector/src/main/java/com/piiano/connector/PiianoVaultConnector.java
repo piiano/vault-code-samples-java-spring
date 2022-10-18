@@ -107,7 +107,8 @@ public class PiianoVaultConnector {
     private static ApiClient getApiClient() {
         // Create configuration, bearer auth and client API
         ApiClient pvaultClient = Configuration.getDefaultApiClient();
-        pvaultClient.setBasePath("http://localhost:8123");
+        String port = System.getenv("PVAULT_PORT");
+        pvaultClient.setBasePath("http://localhost:"+port);
         pvaultClient.setBearerToken("pvaultauth");
         pvaultClient.addDefaultHeader("Content-Type", "application/json");
         return pvaultClient;

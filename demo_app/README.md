@@ -6,13 +6,14 @@ Demo application without Piiano vault.
 
 1. Java 1.8+
 2. Maven (3.8.3+)/Gradle (7.2+)
-3. Compiled demo-app-0.0.1-SNAPSHOT.jar (run `make` in the parent directory)
+3. Compiled `demo-app-0.0.1-SNAPSHOT.jar` (run `make` in the parent directory)
 4. Docker
 
 ## Installation
 
-Run locally using `./run.sh` from a Mac or Linux machine.
+Run locally using `./run.sh` from a Mac or Linux machine, or inside a WSL2 console on a Windows machine.
 To enable interactive mode, run `./run.sh -i`.
+Optionally: configure non-default network parameters by setting `APP_PORT`, `MYSQL_PORT`, `DOCKER_LOCALHOST` (e.g. to 172.17.0.1 if `host.docker.internal` isn't working).
 
 ### Alternative Manual Instructions
 
