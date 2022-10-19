@@ -1,5 +1,6 @@
 package com.piiano.connector;
 
+import com.demo.app.dal.User;
 import com.google.common.collect.ImmutableList;
 import org.jetbrains.annotations.NotNull;
 import org.openapitools.client.ApiClient;
@@ -19,13 +20,30 @@ public class PiianoVaultConnector {
     public static final String USERS = "users";
     public static final String REASON = "AppFunctionality";
     public static final String ADHOC_REASON = "";
+    public static final Boolean RELOAD_CACHE = false; // Boolean | Reloads the cache before the action.
     public static final String TTL = ""; // String | Token time to live (TTL) in seconds. If not set, the default TTL is used. See the `PVAULT_TTL_TOKENS` time to live environment variable.
     public static final Integer PAGE_SIZE = 100; // String | Token time to live (TTL) in seconds. If not set, the default TTL is used. See the `PVAULT_TTL_TOKENS` time to live environment variable.
-    public static final Boolean RELOAD_CACHE = false; // Boolean | Reloads the cache before the action.
+    public static final int DEFAULT_PVAULT_PORT = 8124;
 
-    public static UUID createObject(String email) {
+    public static void createObjectAndTokenize(User user) {
+        UUID id = createObject(user.getEmail());
+        user.setEmail(tokenize(id));
+    }
+
+    public static String findObjectAndGetToken(String email) {
+        List<UUID> objectIds = findObject(email);
+        return tokenize(objectIds.get(0));
+    }
+
+    public static void detokenize(Iterable<User> users) {
+        users.forEach(u -> {
+            String detokenizedEmail = detokenize(u.getEmail());
+            u.setEmail(detokenizedEmail);
+        });
+    }
+
+    private static UUID createObject(String email) {
         ApiClient pvaultClient = getApiClient();
-
         ObjectsApi objectsApi = new ObjectsApi(pvaultClient);
 
         Map<String, Object> fields = new HashMap<>();
@@ -41,9 +59,8 @@ public class PiianoVaultConnector {
         return id;
     }
 
-    public static List<UUID> findObject(String email) {
+    private static List<UUID> findObject(String email) {
         ApiClient pvaultClient = getApiClient();
-
         ObjectsApi objectsApi = new ObjectsApi(pvaultClient);
 
         List<UUID> objectIds;
@@ -62,10 +79,8 @@ public class PiianoVaultConnector {
         return objectIds;
     }
 
-    public static String tokenize(UUID id) {
-        // Create configuration, bearer auth and client API
+    private static String tokenize(UUID id) {
         ApiClient pvaultClient = getApiClient();
-
         TokensApi tokensApi = new TokensApi(pvaultClient);
 
         ModelsTokenizeRequest body = new ModelsTokenizeRequest(); // ModelsTokenizeRequest | Details of the object and property.
@@ -73,18 +88,18 @@ public class PiianoVaultConnector {
         body.addPropsItem("email");
         body.setType(ModelsTokenizeRequest.TypeEnum.VALUE);
         body.setReuseTokenId(true);
-        String output = "";
+        String output;
         try {
             List<ModelsTokenValue> result = tokensApi.tokenize(USERS, REASON, body, TTL, ADHOC_REASON, RELOAD_CACHE);
             output = result.get(0).getTokenId();
         } catch (ApiException e) {
             System.err.println("Exception when calling TokensApi#tokenize");
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return output;
     }
 
-    public static String detokenize(String token) {
+    private static String detokenize(String token) {
         // Create configuration, bearer auth and client API
         ApiClient pvaultClient = getApiClient();
 
@@ -107,8 +122,9 @@ public class PiianoVaultConnector {
     private static ApiClient getApiClient() {
         // Create configuration, bearer auth and client API
         ApiClient pvaultClient = Configuration.getDefaultApiClient();
-        String port = System.getenv("PVAULT_PORT");
-        pvaultClient.setBasePath("http://localhost:"+port);
+        String envPvaultPort = System.getenv("PVAULT_PORT");
+        String pvaultPort = envPvaultPort != null ? envPvaultPort : String.valueOf(DEFAULT_PVAULT_PORT);
+        pvaultClient.setBasePath("http://localhost:" + pvaultPort);
         pvaultClient.setBearerToken("pvaultauth");
         pvaultClient.addDefaultHeader("Content-Type", "application/json");
         return pvaultClient;
