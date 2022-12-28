@@ -13,7 +13,7 @@ export MYSQL_PORT=${MYSQL_PORT:-3307}
 # Docker localhost
 DOCKER_LOCALHOST=${DOCKER_LOCALHOST:-host.docker.internal} # or use 172.17.0.1
 # Vault
-DOCKER_TAG="1.0.2"
+DOCKER_TAG="latest"
 export PVAULT_PORT=${PVAULT_PORT:-8124}
 PSQL_PORT=${PSQL_PORT:-5431}
 PVAULT_CLI="docker run --rm -i -v $(pwd):/pwd -w /pwd -e PVAULT_ADDR=http://${DOCKER_LOCALHOST}:${PVAULT_PORT} piiano/pvault-cli:${DOCKER_TAG}"
