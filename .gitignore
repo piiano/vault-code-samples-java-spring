@@ -1,3 +1,7 @@
+vault_java_sdk
+piiano_vault_sdk
+openapi.json
+
 *.class
 
 .idea

@@ -13,7 +13,7 @@ export MYSQL_PORT=${MYSQL_PORT:-3307}
 # Docker localhost
 DOCKER_LOCALHOST=${DOCKER_LOCALHOST:-host.docker.internal} # or use 172.17.0.1
 # Vault
-DOCKER_TAG="0.9.7"
+DOCKER_TAG="1.0.2"
 export PVAULT_PORT=${PVAULT_PORT:-8124}
 PSQL_PORT=${PSQL_PORT:-5431}
 PVAULT_CLI="docker run --rm -i -v $(pwd):/pwd -w /pwd -e PVAULT_ADDR=http://${DOCKER_LOCALHOST}:${PVAULT_PORT} piiano/pvault-cli:${DOCKER_TAG}"
@@ -175,6 +175,22 @@ ${PVAULT_CLI} collection add --collection-pvschema "
 users PERSONS (
   email EMAIL,
 )"
+
+cd ..
+
+debug "Downloading openapi file"
+curl -o openapi.json https://piiano.com/docs/assets/openapi.json
+
+debug "Running openapi tools to create the SDK"
+docker run --rm -u $(id -u):$(id -g) -v "${PWD}:/local" openapitools/openapi-generator-cli:v6.2.1 generate \
+    -i local/openapi.json \
+    -g java \
+    -o local/piiano_vault_sdk
+
+debug "make"
+make
+
+cd piiano_vault_connector/
 
 # run Piiano connector
 debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/piiano-vault-orm-connector/0.0.1-SNAPSHOT/piiano-vault-orm-connector-0.0.1-SNAPSHOT.jar"
