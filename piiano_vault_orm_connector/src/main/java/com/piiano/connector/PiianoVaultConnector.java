@@ -48,8 +48,8 @@ public class PiianoVaultConnector {
 
         List<UUID> objectIds;
         try {
-            Query modelsQuery = new Query();
-            modelsQuery.setMatch(Collections.singletonMap("email", email));
+            Query query = new Query();
+            query.setMatch(Collections.singletonMap("email", email));
             ObjectFieldsPage objectIdsPage =
                     objectsApi.searchObjects(USERS, REASON, modelsQuery, ADHOC_REASON,
                             RELOAD_CACHE, PAGE_SIZE, "", "", emptyList(), ImmutableList.of("_id"));
