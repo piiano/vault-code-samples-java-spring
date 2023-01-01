@@ -187,6 +187,9 @@ docker run --rm -u $(id -u):$(id -g) -v "${PWD}:/local" openapitools/openapi-gen
     -g java \
     -o local/piiano_vault_sdk
 
+debug "make clean"
+make clean
+
 debug "make"
 make
 
