@@ -32,7 +32,7 @@ public class PiianoVaultConnector {
         fields.put("email", email);
         UUID id;
         try {
-            ModelsObjectID objectID = objectsApi.addObject(USERS, REASON, fields, ADHOC_REASON, RELOAD_CACHE, TTL);
+            ObjectID objectID = objectsApi.addObject(USERS, REASON, fields, ADHOC_REASON, RELOAD_CACHE, TTL);
             id = objectID.getId();
         } catch (ApiException e) {
             throw new RuntimeException(e);
@@ -48,11 +48,11 @@ public class PiianoVaultConnector {
 
         List<UUID> objectIds;
         try {
-            ModelsQuery modelsQuery = new ModelsQuery();
-            modelsQuery.setMatch(Collections.singletonMap("email", email));
-            ModelsObjectFieldsPage objectIdsPage =
-                    objectsApi.searchObjects(USERS, REASON, modelsQuery, ADHOC_REASON,
-                            RELOAD_CACHE, PAGE_SIZE, "", emptyList(), ImmutableList.of("_id"));
+            Query query = new Query();
+            query.setMatch(Collections.singletonMap("email", email));
+            ObjectFieldsPage objectIdsPage =
+                    objectsApi.searchObjects(USERS, REASON, query, ADHOC_REASON,
+                            RELOAD_CACHE, PAGE_SIZE, "", "", emptyList(), ImmutableList.of("_id"));
             objectIds = objectIdsPage.getResults().stream().map(props -> UUID.fromString((String)props.get("_id")))
                     .collect(Collectors.toList());
         } catch (ApiException e) {
@@ -68,14 +68,14 @@ public class PiianoVaultConnector {
 
         TokensApi tokensApi = new TokensApi(pvaultClient);
 
-        ModelsTokenizeRequest body = new ModelsTokenizeRequest(); // ModelsTokenizeRequest | Details of the object and property.
+        TokenizeRequest body = new TokenizeRequest(); // TokenizeRequest | Details of the object and property.
         body.addObjectIdsItem(id);
         body.addPropsItem("email");
-        body.setType(ModelsTokenizeRequest.TypeEnum.VALUE);
+        body.setType(TokenizeRequest.TypeEnum.VALUE);
         body.setReuseTokenId(true);
         String output = "";
         try {
-            List<ModelsTokenValue> result = tokensApi.tokenize(USERS, REASON, body, TTL, ADHOC_REASON, RELOAD_CACHE);
+            List<TokenValue> result = tokensApi.tokenize(USERS, REASON, body, TTL, ADHOC_REASON, RELOAD_CACHE);
             output = result.get(0).getTokenId();
         } catch (ApiException e) {
             System.err.println("Exception when calling TokensApi#tokenize");
@@ -94,10 +94,10 @@ public class PiianoVaultConnector {
 
         String output = "";
         try {
-            List<ModelsDetokenizedToken> detokenize = tokensApi.detokenize(USERS, REASON, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), tokenIds, ADHOC_REASON, RELOAD_CACHE);
+            List<DetokenizedToken> detokenize = tokensApi.detokenize(USERS, REASON, Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), tokenIds, ADHOC_REASON, RELOAD_CACHE);
             output = (String)detokenize.get(0).getFields().get("email");
         } catch (ApiException e) {
-            System.err.println("Exception when calling TokensApi#tokenize");
+            System.err.println("Exception when calling TokensApi#detokenize");
             e.printStackTrace();
         }
         return output;

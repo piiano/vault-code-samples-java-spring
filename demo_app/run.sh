@@ -137,6 +137,9 @@ docker run --rm --name mysql -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS} -p ${MYSQ
 mysql_cmd_inital
 mysql_cmd true "create database app_db; create user '${MYSQL_USER}'@'%' identified by '${MYSQL_PASS}'; grant all on ${MYSQL_DBNAME}.* to '${MYSQL_USER}'@'%';"
 
+debug "build project with make"
+cd .. && make && cd demo_app
+
 # run Piiano connector
 debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/demo-app/0.0.1-SNAPSHOT/demo-app-0.0.1-SNAPSHOT.jar"
 java -jar ~/.m2/repository/com/piiano/demo-app/0.0.1-SNAPSHOT/demo-app-0.0.1-SNAPSHOT.jar \

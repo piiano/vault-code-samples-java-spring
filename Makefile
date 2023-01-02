@@ -7,6 +7,8 @@ DEMO_APP_DIR 			:= demo_app
 VAULT_CONNECTOR_DIR 	:= piiano_vault_connector
 VAULT_ORM_CONNECTOR_DIR := piiano_vault_orm_connector
 VAULT_SDK_DIR			:= piiano_vault_sdk
+OPENAPI_URL             := https://piiano.com/docs/assets/openapi.json
+OPENAPI_JSON            := openapi.json
 
 # JAR locations
 SDK_JAR	:= $(M2_DIR)/org/openapitools/openapi-java-client/1.0/openapi-java-client-1.0-sources.jar
@@ -15,11 +17,25 @@ ORM_CONNECTOR_JAR := $(M2_DIR_PNO)/piiano-vault-orm-connector/0.0.1-SNAPSHOT/pii
 VAULT_CONNECTOR_JAR := $(M2_DIR_PNO)/piiano-vault-connector/0.0.1-SNAPSHOT/piiano-vault-connector-0.0.1-SNAPSHOT.jar
 
 .PHONY: compile
-compile: sdk demo_app vault_connector orm_connector 
+compile: sdk demo_app vault_connector orm_connector
+
+############################
+########## openapi #########
+############################
+
+.PHONY: generate_openapi
+generate_openapi:
+	rm -f $(OPENAPI_JSON)
+	curl -o $(OPENAPI_JSON) $(OPENAPI_URL)
+	docker run --rm -u $(id -u):$(id -g) -v "${PWD}:/local" openapitools/openapi-generator-cli:v6.2.1 generate \
+		-i local/$(OPENAPI_JSON) \
+		-g java \
+		-o local/piiano_vault_sdk
 
 ############################
 ########### JARs ###########
 ############################
+
 .PHONY: sdk
 sdk: $(SDK_JAR)
 
@@ -32,7 +48,7 @@ orm_connector: $(ORM_CONNECTOR_JAR)
 .PHONY: vault_connector
 vault_connector: $(VAULT_CONNECTOR_JAR)
 
-$(SDK_JAR): 
+$(SDK_JAR): generate_openapi
 	cd $(VAULT_SDK_DIR) && mvn install
 
 $(DEMO_APP_JAR): 
