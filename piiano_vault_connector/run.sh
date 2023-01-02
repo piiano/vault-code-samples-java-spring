@@ -176,24 +176,8 @@ users PERSONS (
   email EMAIL,
 )"
 
-cd ..
-
-debug "Downloading openapi file"
-curl -o openapi.json https://piiano.com/docs/assets/openapi.json
-
-debug "Running openapi tools to create the SDK"
-docker run --rm -u $(id -u):$(id -g) -v "${PWD}:/local" openapitools/openapi-generator-cli:v6.2.1 generate \
-    -i local/openapi.json \
-    -g java \
-    -o local/piiano_vault_sdk
-
-debug "make clean"
-make clean
-
-debug "make"
-make
-
-cd piiano_vault_connector/
+debug "build project with make"
+cd .. && make && cd piiano_vault_connector
 
 # run Piiano connector
 debug "Running the spring app: java -jar ~/.m2/repository/com/piiano/piiano-vault-connector/0.0.1-SNAPSHOT/piiano-vault-connector-0.0.1-SNAPSHOT.jar"
