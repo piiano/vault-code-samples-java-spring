@@ -69,8 +69,8 @@ public class PiianoVaultConnector {
             query.setMatch(Collections.singletonMap("email", email));
             ObjectFieldsPage objectIdsPage =
                     objectsApi.searchObjects(USERS, REASON, query, ADHOC_REASON,
-                            RELOAD_CACHE, PAGE_SIZE, "", "",emptyList(), ImmutableList.of("_id"));
-            objectIds = objectIdsPage.getResults().stream().map(props -> UUID.fromString((String)props.get("_id")))
+                            RELOAD_CACHE, PAGE_SIZE, "", "",emptyList(), ImmutableList.of("id"));
+            objectIds = objectIdsPage.getResults().stream().map(props -> UUID.fromString((String)props.get("id")))
                     .collect(Collectors.toList());
         } catch (ApiException e) {
             throw new RuntimeException(e);
